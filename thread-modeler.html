@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISO Thread Modeler — 3D Print</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #13161e;
+    --surface2: #1a1e28;
+    --border: #252a38;
+    --accent: #00e5c3;
+    --accent2: #ff6b35;
+    --accent3: #7c6fff;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --bolt: #4a9eff;
+    --nut: #ff9f43;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* Background grid */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,229,195,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,195,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  header {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 24px;
+  }
+
+  .logo-mark {
+    width: 48px;
+    height: 48px;
+    border: 2px solid var(--accent);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--accent);
+    flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(0,229,195,0.15);
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-left: auto;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .field { margin-bottom: 16px; }
+
+  select, input[type="number"] {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    padding: 10px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    appearance: none;
+  }
+  select:focus, input[type="number"]:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,195,0.1);
+  }
+  select option { background: #1a1e28; }
+
+  .toggle-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .toggle-btn {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .toggle-btn.active-bolt {
+    border-color: var(--bolt);
+    background: rgba(74,158,255,0.1);
+    color: var(--bolt);
+  }
+  .toggle-btn.active-nut {
+    border-color: var(--nut);
+    background: rgba(255,159,67,0.1);
+    color: var(--nut);
+  }
+
+  .offset-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .offset-row input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .offset-row label {
+    margin: 0;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+  }
+  .offset-tag {
+    margin-left: auto;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent);
+    background: rgba(0,229,195,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+  }
+
+  .calc-btn {
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #0d0f14;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .calc-btn:hover {
+    background: #00ffd5;
+    box-shadow: 0 0 24px rgba(0,229,195,0.4);
+    transform: translateY(-1px);
+  }
+  .calc-btn:active { transform: translateY(0); }
+
+  /* Results */
+  .results-area { display: flex; flex-direction: column; gap: 20px; }
+
+  .thread-viz {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  canvas {
+    border-radius: 8px;
+    display: block;
+  }
+
+  .dims-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .dim-card:hover { border-color: var(--accent); }
+
+  .dim-label {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .dim-value {
+    font-size: 22px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+  }
+  .dim-unit {
+    font-size: 12px;
+    color: var(--muted);
+    margin-left: 2px;
+  }
+  .dim-note {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .dim-note.adjusted {
+    color: var(--accent);
+  }
+  .dim-note.adjusted::before {
+    content: '▲ ';
+  }
+
+  .bolt-color { color: var(--bolt); }
+  .nut-color { color: var(--nut); }
+
+  .inventor-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .inv-title {
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .inv-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .inv-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .inv-step {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+  }
+  .step-text code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+
+  .placeholder {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .placeholder svg { margin-bottom: 16px; opacity: 0.3; }
+
+  .formula-row {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 2px solid var(--accent3);
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .badge-bolt { background: rgba(74,158,255,0.15); color: var(--bolt); }
+  .badge-nut { background: rgba(255,159,67,0.15); color: var(--nut); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-in { animation: fadeIn 0.3s ease forwards; }
+
+  .pitch-type-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .pitch-type-btn {
+    padding: 8px 4px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .pitch-type-btn.active {
+    border-color: var(--accent3);
+    background: rgba(124,111,255,0.1);
+    color: var(--accent3);
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo-mark">M⌀</div>
+    <div>
+      <h1>ISO Thread <span>Modeler</span></h1>
+      <div style="font-size:13px;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:2px;">for Autodesk Inventor · 3D Print</div>
+    </div>
+    <div class="subtitle">ISO 68-1 / ISO 261<br>±0.1mm FDM compensation</div>
+  </header>
+
+  <div class="layout">
+    <!-- Controls -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">Thread Parameters</div>
+
+        <div class="field">
+          <label>THREAD TYPE</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active-bolt" id="btn-bolt" onclick="setType('bolt')">⬡ External (Bolt)</button>
+            <button class="toggle-btn" id="btn-nut" onclick="setType('nut')">⬡ Internal (Nut)</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>NOMINAL DIAMETER — M (mm)</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="number" id="sel-diameter" value="6" min="1" max="100" step="0.5"
+              style="flex:1;"
+              oninput="onDiameterChange()">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--accent);white-space:nowrap;" id="diameter-label">M6</span>
+          </div>
+          <div id="preset-btns" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;"></div>
+        </div>
+
+        <div class="field">
+          <label>PITCH TYPE</label>
+          <div class="pitch-type-row">
+            <button class="pitch-type-btn active" id="pt-coarse" onclick="setPitchType('coarse')">Coarse</button>
+            <button class="pitch-type-btn" id="pt-fine" onclick="setPitchType('fine')">Fine</button>
+            <button class="pitch-type-btn" id="pt-custom" onclick="setPitchType('custom')">Custom</button>
+          </div>
+        </div>
+
+        <div class="field" id="pitch-select-field">
+          <label>PITCH (mm)</label>
+          <select id="sel-pitch"></select>
+        </div>
+        <div class="field" id="pitch-custom-field" style="display:none">
+          <label>CUSTOM PITCH (mm)</label>
+          <input type="number" id="inp-pitch" value="1.0" min="0.1" max="8" step="0.05">
+        </div>
+
+        <div class="offset-row">
+          <input type="checkbox" id="chk-offset" checked>
+          <label for="chk-offset">Apply 3D print compensation</label>
+          <span class="offset-tag">±0.1 mm</span>
+        </div>
+
+        <button class="calc-btn" onclick="calculate()">Calculate Dimensions →</button>
+      </div>
+
+      <div class="panel" style="margin-top:20px;">
+        <div class="panel-title">ISO Thread Formula</div>
+        <div style="font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;line-height:1.8;">
+          H = (√3/2) × P<br>
+          d<sub>2</sub> = D − 0.6495 × P<br>
+          Bolt root d<sub>3</sub> = D − 1.2269 × P<br>
+          Nut bore D<sub>1</sub> = D − 1.0825 × P<br>
+          Tooth h = 0.6134 × P · Groove h = 0.5413 × P<br>
+          60° flanks · flat P/8 at crest
+        </div>
+        <div class="formula-row" style="margin-top:12px;">
+          Offset: bolt −0.1mm, nut +0.1mm on diameters.
+        </div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-area" id="results-area">
+      <div class="panel placeholder" style="border:1px solid var(--border);border-radius:12px;background:var(--surface);">
+        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="20" stroke="currentColor" stroke-width="2"/>
+          <path d="M24 14v10l6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div>Select parameters and hit<br><strong style="color:var(--text)">Calculate Dimensions</strong></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ISO 261 standard pitches: { diameter: [coarse, fine...] }
+const PITCH_TABLE = {
+  1:    { coarse: 0.25, fine: [] },
+  1.2:  { coarse: 0.25, fine: [] },
+  1.4:  { coarse: 0.3,  fine: [] },
+  1.6:  { coarse: 0.35, fine: [] },
+  2:    { coarse: 0.4,  fine: [] },
+  2.5:  { coarse: 0.45, fine: [] },
+  3:    { coarse: 0.5,  fine: [] },
+  4:    { coarse: 0.7,  fine: [] },
+  5:    { coarse: 0.8,  fine: [] },
+  6:    { coarse: 1.0,  fine: [0.75] },
+  8:    { coarse: 1.25, fine: [1.0, 0.75] },
+  10:   { coarse: 1.5,  fine: [1.25, 1.0, 0.75] },
+  12:   { coarse: 1.75, fine: [1.5, 1.25] },
+  14:   { coarse: 2.0,  fine: [1.5] },
+  16:   { coarse: 2.0,  fine: [1.5] },
+  18:   { coarse: 2.5,  fine: [2.0, 1.5] },
+  20:   { coarse: 2.5,  fine: [2.0, 1.5] },
+  22:   { coarse: 2.5,  fine: [2.0, 1.5] },
+  24:   { coarse: 3.0,  fine: [2.0] },
+  27:   { coarse: 3.0,  fine: [2.0] },
+  30:   { coarse: 3.5,  fine: [2.0] },
+  33:   { coarse: 3.5,  fine: [2.0] },
+  36:   { coarse: 4.0,  fine: [3.0] },
+  39:   { coarse: 4.0,  fine: [3.0] },
+  42:   { coarse: 4.5,  fine: [3.0] },
+  45:   { coarse: 4.5,  fine: [3.0] },
+  48:   { coarse: 5.0,  fine: [3.0] },
+  52:   { coarse: 5.0,  fine: [4.0, 3.0] },
+  56:   { coarse: 5.5,  fine: [4.0] },
+  60:   { coarse: 5.5,  fine: [4.0] },
+  64:   { coarse: 6.0,  fine: [4.0] },
+  68:   { coarse: 6.0,  fine: [4.0] },
+  72:   { coarse: 6.0,  fine: [4.0] },
+  76:   { coarse: 6.0,  fine: [4.0] },
+  80:   { coarse: 6.0,  fine: [4.0] },
+  85:   { coarse: 6.0,  fine: [4.0] },
+  90:   { coarse: 6.0,  fine: [4.0] },
+  95:   { coarse: 6.0,  fine: [4.0] },
+  100:  { coarse: 6.0,  fine: [4.0] },
+};
+
+// Standard ISO 261 preset diameters (for quick-pick buttons)
+const PRESETS = [1,1.2,1.4,1.6,2,2.5,3,4,5,6,8,10,12,14,16,18,20,22,24,27,30,33,36,39,42,45,48,52,56,60,64,68,72,76,80,85,90,95,100];
+
+// For non-standard diameters, estimate coarse pitch from nearest standard or interpolation
+function getPitchData(D) {
+  if (PITCH_TABLE[D]) return PITCH_TABLE[D];
+  // Find nearest standard entry
+  const keys = Object.keys(PITCH_TABLE).map(Number).sort((a,b)=>a-b);
+  let closest = keys.reduce((a,b) => Math.abs(b-D) < Math.abs(a-D) ? b : a);
+  return { ...PITCH_TABLE[closest], custom: true, nearestStd: closest };
+}
+
+function renderPresets() {
+  const container = document.getElementById('preset-btns');
+  const currentD = parseFloat(document.getElementById('sel-diameter').value);
+  container.innerHTML = PRESETS.map(d => {
+    const active = Math.abs(d - currentD) < 0.01;
+    return `<button onclick="setDiameter(${d})" style="
+      padding:4px 7px;border-radius:5px;border:1px solid ${active?'var(--accent)':'var(--border)'};
+      background:${active?'rgba(0,229,195,0.12)':'var(--surface2)'};
+      color:${active?'var(--accent)':'var(--muted)'};
+      font-family:'JetBrains Mono',monospace;font-size:10px;cursor:pointer;transition:all 0.15s;
+    ">${d}</button>`;
+  }).join('');
+}
+
+function setDiameter(d) {
+  document.getElementById('sel-diameter').value = d;
+  onDiameterChange();
+}
+
+let currentType = 'bolt';
+let currentPitchType = 'coarse';
+
+function setType(t) {
+  currentType = t;
+  document.getElementById('btn-bolt').className = 'toggle-btn' + (t === 'bolt' ? ' active-bolt' : '');
+  document.getElementById('btn-nut').className  = 'toggle-btn' + (t === 'nut'  ? ' active-nut'  : '');
+}
+
+function setPitchType(t) {
+  currentPitchType = t;
+  ['coarse','fine','custom'].forEach(x => {
+    document.getElementById('pt-'+x).className = 'pitch-type-btn' + (x===t ? ' active' : '');
+  });
+  document.getElementById('pitch-select-field').style.display = t === 'custom' ? 'none' : 'block';
+  document.getElementById('pitch-custom-field').style.display = t === 'custom' ? 'block' : 'none';
+  if (t !== 'custom') populatePitches();
+}
+
+function onDiameterChange() {
+  updateDiameterLabel();
+  renderPresets();
+  populatePitches();
+}
+
+function populatePitches() {
+  const D = parseFloat(document.getElementById('sel-diameter').value);
+  if (isNaN(D) || D <= 0) return;
+  const data = getPitchData(D);
+  const sel = document.getElementById('sel-pitch');
+  sel.innerHTML = '';
+
+  // Show non-standard warning
+  let warn = document.getElementById('nonstandard-warn');
+  if (data.custom) {
+    if (!warn) {
+      warn = document.createElement('div');
+      warn.id = 'nonstandard-warn';
+      warn.style.cssText = 'font-size:11px;font-family:"JetBrains Mono",monospace;color:#ff6b35;margin-top:6px;padding:6px 10px;background:rgba(255,107,53,0.1);border-radius:6px;border-left:2px solid #ff6b35;';
+      document.getElementById('pitch-select-field').appendChild(warn);
+    }
+    warn.textContent = `⚠ M${D} is non-standard. Using pitches from nearest ISO size M${data.nearestStd}.`;
+  } else if (warn) {
+    warn.remove();
+  }
+
+  if (currentPitchType === 'coarse') {
+    sel.innerHTML = `<option value="${data.coarse}">${data.coarse} mm (coarse)</option>`;
+  } else {
+    if (data.fine.length === 0) {
+      sel.innerHTML = `<option value="${data.coarse}">${data.coarse} mm (no fine — using coarse)</option>`;
+    } else {
+      data.fine.forEach(p => {
+        sel.innerHTML += `<option value="${p}">${p} mm</option>`;
+      });
+    }
+  }
+}
+
+function r4(n) { return Math.round(n * 10000) / 10000; }
+function r3(n) { return Math.round(n * 1000) / 1000; }
+
+function calculate() {
+  const D = parseFloat(document.getElementById('sel-diameter').value);
+  const offset = document.getElementById('chk-offset').checked;
+  let P;
+  if (currentPitchType === 'custom') {
+    P = parseFloat(document.getElementById('inp-pitch').value);
+  } else {
+    P = parseFloat(document.getElementById('sel-pitch').value);
+  }
+  if (!P || isNaN(P) || P <= 0) { alert('Invalid pitch value.'); return; }
+
+  const isBolt = currentType === 'bolt';
+  const adj = offset ? (isBolt ? -0.1 : +0.1) : 0;
+
+  // ISO thread geometry (60deg flanks)
+  const H  = (Math.sqrt(3) / 2) * P;                              // fundamental triangle height
+  // Bolt: root Ø d3 = D - 1.2269P, tooth height 0.6134P.
+  // Nut : minor Ø D1 = D - 1.0825P (5H/4), groove depth 0.5413P (5H/8).
+  const D1 = r4(isBolt ? D - 1.2269 * P : D - 1.0825 * P);
+  const D2 = r4(D - 0.6495 * P);                                  // pitch diameter
+  const threadDepth = r4(isBolt ? 0.6134 * P : 0.5413 * P);       // radial depth of the sketch
+
+  // Drill size for tap
+  const tapDrill = r3(D - P);
+
+  // With 3D print offset applied
+  const majorAdj   = r4(D + adj);
+  const pitchAdj   = r4(D2 + adj);
+  const minorAdj   = r4(D1 + adj);
+
+  renderResults({ D, P, H, D1, D2, threadDepth, tapDrill, isBolt, offset, adj, majorAdj, pitchAdj, minorAdj });
+}
+
+function renderResults({ D, P, H, D1, D2, threadDepth, tapDrill, isBolt, offset, adj, majorAdj, pitchAdj, minorAdj }) {
+  const badge = isBolt
+    ? `<span class="badge badge-bolt">EXTERNAL · BOLT</span>`
+    : `<span class="badge badge-nut">INTERNAL · NUT</span>`;
+
+  const offsetNote = offset
+    ? (isBolt ? `3D offset −0.1 mm applied` : `3D offset +0.1 mm applied`)
+    : `No offset`;
+
+  const colorClass = isBolt ? 'bolt-color' : 'nut-color';
+  const accentColor = isBolt ? 'var(--bolt)' : 'var(--nut)';
+
+  const dims = [
+    {
+      label: isBolt ? '① Extrude Ø (root)' : '① Bore Hole Ø (minor)',
+      nominal: D1,
+      adjusted: minorAdj,
+      note: isBolt ? 'Extrude your cylinder to this Ø — thread builds outward' : 'Bore your hole to this Ø — thread cuts outward into the wall',
+    },
+    {
+      label: isBolt ? 'Crest Ø (major — after coil)' : 'Groove-root Ø (major — after coil)',
+      nominal: D,
+      adjusted: majorAdj,
+      note: isBolt ? 'Thread crests reach this Ø after coil join' : 'Groove roots reach this Ø after coil cut',
+    },
+    {
+      label: 'Pitch Diameter',
+      nominal: D2,
+      adjusted: pitchAdj,
+      note: 'Effective engagement diameter',
+    },
+    {
+      label: isBolt ? 'Tooth Height (radial)' : 'Groove Depth (radial)',
+      nominal: threadDepth,
+      adjusted: threadDepth,
+      note: isBolt ? 'Radial height of sketch = 0.6134 × P' : 'Radial height of sketch = 0.5413 × P (5H/8)',
+    },
+    {
+      label: 'Pitch (coil pitch)',
+      nominal: P,
+      adjusted: P,
+      note: 'Set as the Coil pitch',
+    },
+    {
+      label: 'Major Ø',
+      nominal: D,
+      adjusted: majorAdj,
+      note: 'Nominal major diameter',
+    },
+  ];
+
+  const cardsHtml = dims.map(d => {
+    const showAdj = offset && d.adjusted !== d.nominal;
+    return `
+      <div class="dim-card animate-in">
+        <div class="dim-label">${d.label}</div>
+        <div class="dim-value ${colorClass}">
+          ${showAdj ? `<span style="color:var(--muted);text-decoration:line-through;font-size:14px;">${d.nominal}</span>
+          <span style="font-size:11px;color:var(--muted)"> → </span>
+          ${d.adjusted}` : d.adjusted}
+          <span class="dim-unit">mm</span>
+        </div>
+        <div class="dim-note ${showAdj ? 'adjusted' : ''}">${showAdj ? offsetNote : d.note}</div>
+      </div>`;
+  }).join('');
+
+  // Trapezoid sketch dimensions (true 60deg ISO flanks)
+  //   Bolt tooth : base 5P/6 on the root cylinder, flat P/8 at the crest, height 0.6134P
+  //   Nut groove : base 3P/4 on the bore wall,     flat P/8 at the major, height 0.5413P
+  const sketchH = r4(threadDepth);
+  const sketchBase = r4((isBolt ? 5/6 : 0.75) * P);
+  const sketchFlat = r4(0.125 * P);
+  const overlap = r4(0.05 * P);
+
+  const bodyCylDia   = minorAdj;   // bolt: root cylinder, nut: bore — both are the "minor" Ø
+  const coilOp       = isBolt ? 'Join (Extrude)' : 'Cut';
+
+  const inventorSteps = isBolt ? [
+    `<strong>Extrude the shaft:</strong> Draw a circle at <code>Ø ${bodyCylDia} mm</code> (root Ø${offset ? ', −0.1 mm compensation' : ''}). Extrude to your bolt length. The thread builds outward from this surface.`,
+    `<strong>Sketch the tooth:</strong> On a plane through the centreline, draw an isosceles trapezoid with 60° between the flanks. Base = <code>${sketchBase} mm</code> (axial) sitting on the cylinder at radius <code>${r4(bodyCylDia/2)} mm</code>, flat = <code>${sketchFlat} mm</code> at radius <code>${r4(majorAdj/2)} mm</code>, height = <code>${sketchH} mm</code>. Extend the flanks <code>${overlap} mm</code> into the cylinder so the join fuses cleanly.`,
+    `<strong>Coil → Join:</strong> Select the profile, run <em>Coil</em> with operation = <strong>Join</strong>, <strong>Pitch</strong> = <code>${P} mm</code>. Crests end up at <code>Ø ${majorAdj} mm</code>. The gap of ${r4(P/6)} mm at the root keeps neighbouring turns from touching.`,
+  ] : [
+    `<strong>Bore the hole:</strong> Draw a circle at <code>Ø ${bodyCylDia} mm</code> (minor Ø${offset ? ', +0.1 mm compensation' : ''}). Extrude-cut to depth. This is the bore wall the thread groove cuts outward from.`,
+    `<strong>Sketch the groove:</strong> On a plane through the centreline, draw an isosceles trapezoid with 60° between the flanks. Base = <code>${sketchBase} mm</code> (axial) on the bore wall at radius <code>${r4(bodyCylDia/2)} mm</code>, flat = <code>${sketchFlat} mm</code> at radius <code>${r4(majorAdj/2)} mm</code>, height = <code>${sketchH} mm</code>. Extend the flanks <code>${overlap} mm</code> into the empty bore so the cut is clean.`,
+    `<strong>Coil → Cut:</strong> Select the profile, run <em>Coil</em> with operation = <strong>Cut</strong>, <strong>Pitch</strong> = <code>${P} mm</code>. Groove roots end up at <code>Ø ${majorAdj} mm</code>, leaving ${r4(P/4)} mm flats at the bore.`,
+  ];
+
+  const stepsHtml = inventorSteps.map((s, i) => `
+    <div class="inv-step animate-in">
+      <div class="step-num">${i+1}</div>
+      <div class="step-text">${s}</div>
+    </div>`).join('');
+
+  const cardBorderColor = isBolt ? 'rgba(74,158,255,0.35)' : 'rgba(255,159,67,0.35)';
+  const cardAccent      = isBolt ? '#4a9eff' : '#ff9f43';
+  const cell = (title, val, sub) => `
+        <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);">
+          <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:4px;">${title}</div>
+          <div style="font-size:20px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${cardAccent};">${val}<span style="font-size:12px;color:var(--muted);margin-left:2px;">mm</span></div>
+          <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-top:2px;">${sub}</div>
+        </div>`;
+
+  // Quick-ref card
+  const profileCard = `
+    <div style="background:var(--surface2);border:1px solid ${cardBorderColor};border-radius:10px;padding:18px;margin-top:4px;">
+      <div style="font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:14px;">Inventor Quick Ref</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div style="padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);grid-column:1/-1;">
+          <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-bottom:4px;">${isBolt ? 'STEP 1 — EXTRUDE CYLINDER Ø' : 'STEP 1 — BORE HOLE Ø'}</div>
+          <div style="font-size:26px;font-family:'JetBrains Mono',monospace;font-weight:700;color:${cardAccent};">${bodyCylDia}<span style="font-size:13px;color:var(--muted);margin-left:3px;">mm</span></div>
+          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--muted);margin-top:3px;">${isBolt ? 'root Ø — thread builds outward from here' : 'minor Ø — groove cuts outward from here'}</div>
+        </div>
+        ${cell('SKETCH BASE', sketchBase, isBolt ? 'on the cylinder' : 'on the bore wall')}
+        ${cell('SKETCH FLAT', sketchFlat, isBolt ? 'at the crest' : 'at the major Ø')}
+        ${cell('SKETCH HEIGHT', sketchH, 'radial')}
+      </div>
+
+      <div style="padding:10px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border);font-size:11px;font-family:'JetBrains Mono',monospace;line-height:1.9;">
+        <span style="color:var(--muted)">Coil op:</span> <strong style="color:${cardAccent}">${coilOp}</strong>
+        &nbsp;·&nbsp; <span style="color:var(--muted)">Pitch:</span> <strong style="color:${cardAccent}">${P} mm</strong>
+        &nbsp;·&nbsp; <span style="color:var(--muted)">Flank angle:</span> <strong style="color:${cardAccent}">60° included</strong>
+        &nbsp;·&nbsp; <span style="color:var(--muted)">Trapezoid points:</span> <strong style="color:${cardAccent}">${isBolt ? 'outward' : 'outward (groove)'}</strong>
+        <br><span style="color:var(--muted)">Result:</span> ${isBolt
+          ? `crests <strong style="color:${cardAccent}">Ø ${majorAdj} mm</strong> · roots <strong style="color:${cardAccent}">Ø ${minorAdj} mm</strong>`
+          : `bore <strong style="color:${cardAccent}">Ø ${minorAdj} mm</strong> · groove roots <strong style="color:${cardAccent}">Ø ${majorAdj} mm</strong>`}
+      </div>
+    </div>`;
+
+  const html = `
+    <div class="thread-viz animate-in">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <div style="font-size:18px;font-weight:800;letter-spacing:-0.5px;">
+          M${D}×${P} ${badge}
+        </div>
+        <div style="font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--muted);">
+          ${offset ? '±0.1 mm offset ON' : 'No offset'}
+        </div>
+      </div>
+      <canvas id="thread-canvas" width="540" height="180"></canvas>
+    </div>
+
+    <div class="dims-grid animate-in">
+      ${cardsHtml}
+    </div>
+
+    <div class="inventor-box animate-in">
+      <div class="inv-title">Inventor Coil Workflow</div>
+      ${profileCard}
+      <div class="inv-steps" style="margin-top:16px;">${stepsHtml}</div>
+    </div>
+  `;
+
+  document.getElementById('results-area').innerHTML = html;
+
+  // Draw thread profile
+  requestAnimationFrame(() => drawThreadProfile(D, P, D1, D2, threadDepth, isBolt, offset, adj, accentColor));
+}
+
+function drawThreadProfile(D, P, D1, D2, depth, isBolt, offset, adj, accentColorVar) {
+  const canvas = document.getElementById('thread-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  // Use real RGB colors — canvas can't read CSS variables
+  const color      = isBolt ? '#4a9eff' : '#ff9f43';
+  const colorFill  = isBolt ? 'rgba(74,158,255,0.18)' : 'rgba(255,159,67,0.18)';
+  const colorLine  = isBolt ? 'rgba(74,158,255,0.9)'  : 'rgba(255,159,67,0.9)';
+  const bodyFill   = isBolt ? 'rgba(74,158,255,0.10)' : 'rgba(255,159,67,0.10)';
+  const dimColor   = 'rgba(255,255,255,0.55)';
+  const mutedColor = 'rgba(255,255,255,0.25)';
+
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Background
+  ctx.fillStyle = '#0d0f14';
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle grid
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 20) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 20) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+
+  // --- Layout ---
+  // Left portion: cross-section view (bolt or nut)
+  // Right portion: unrolled thread profile (side view)
+  const splitX = W * 0.38;
+  const margin = 14;
+
+  // ---- LEFT: Cross-section ----
+  const cx = splitX / 2;
+  const cy = H / 2;
+  // Scale so major diameter fits nicely
+  const maxR = Math.min(cx - margin, cy - margin - 16);
+  const scale = maxR / (D / 2);
+  const rMajor = (D / 2) * scale;
+  const rMinor = (D1 / 2) * scale;
+  const rPitch = (D2 / 2) * scale;
+
+  if (isBolt) {
+    // Bolt: solid shaft, thread cuts in
+    // Shaft body
+    ctx.beginPath();
+    ctx.arc(cx, cy, rMajor, 0, Math.PI * 2);
+    ctx.fillStyle = bodyFill;
+    ctx.fill();
+    ctx.strokeStyle = colorLine;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Minor diameter circle (root)
+    ctx.beginPath();
+    ctx.arc(cx, cy, rMinor, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Pitch diameter dashed
+    ctx.beginPath();
+    ctx.arc(cx, cy, rPitch, 0, Math.PI * 2);
+    ctx.strokeStyle = mutedColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Hatch between minor and major (thread zone)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, rMajor, 0, Math.PI*2);
+    ctx.arc(cx, cy, rMinor, 0, Math.PI*2, true);
+    ctx.clip();
+    ctx.strokeStyle = isBolt ? 'rgba(74,158,255,0.15)' : 'rgba(255,159,67,0.15)';
+    ctx.lineWidth = 1;
+    for (let hx = cx - rMajor; hx < cx + rMajor; hx += 5) {
+      ctx.beginPath(); ctx.moveTo(hx, cy - rMajor); ctx.lineTo(hx + rMajor, cy + rMajor); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Axis crosshair
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(cx - rMajor - 8, cy); ctx.lineTo(cx + rMajor + 8, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - rMajor - 8); ctx.lineTo(cx, cy + rMajor + 8); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Labels
+    ctx.font = 'bold 10px JetBrains Mono, monospace';
+    ctx.fillStyle = colorLine;
+    ctx.textAlign = 'center';
+    ctx.fillText(`Ø${D+adj} major`, cx, cy - rMajor - 5);
+    ctx.fillStyle = color;
+    ctx.fillText(`Ø${Math.round((D1+adj)*1000)/1000} minor`, cx, cy + rMinor + 13);
+
+  } else {
+    // Nut: ring with thread on inside
+    const rOuter = maxR;
+    const rWall  = rOuter * 0.55; // arbitrary wall thickness for viz
+
+    // Outer body
+    ctx.beginPath();
+    ctx.arc(cx, cy, rOuter, 0, Math.PI * 2);
+    ctx.fillStyle = bodyFill;
+    ctx.fill();
+    ctx.strokeStyle = mutedColor;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Thread zone hatch (between minor and major on inside)
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, rMajor, 0, Math.PI*2);
+    ctx.arc(cx, cy, rMinor, 0, Math.PI*2, true);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(255,159,67,0.15)';
+    ctx.lineWidth = 1;
+    for (let hx = cx - rMajor; hx < cx + rMajor; hx += 5) {
+      ctx.beginPath(); ctx.moveTo(hx, cy - rMajor); ctx.lineTo(hx + rMajor, cy + rMajor); ctx.stroke();
+    }
+    ctx.restore();
+
+    // Bore wall (minor dia = inner surface)
+    ctx.beginPath();
+    ctx.arc(cx, cy, rMinor, 0, Math.PI * 2);
+    ctx.strokeStyle = colorLine;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Major dia dashed
+    ctx.beginPath();
+    ctx.arc(cx, cy, rMajor, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4,4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Pitch dashed
+    ctx.beginPath();
+    ctx.arc(cx, cy, rPitch, 0, Math.PI * 2);
+    ctx.strokeStyle = mutedColor;
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,5]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Axis crosshair
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([3,3]);
+    ctx.beginPath(); ctx.moveTo(cx - rOuter - 6, cy); ctx.lineTo(cx + rOuter + 6, cy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx, cy - rOuter - 6); ctx.lineTo(cx, cy + rOuter + 6); ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.font = 'bold 10px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = colorLine;
+    ctx.fillText(`Ø${Math.round((D1+adj)*1000)/1000} bore`, cx, cy - rMinor - 5);
+    ctx.fillStyle = color;
+    ctx.fillText(`Ø${D+adj} major`, cx, cy + rMajor + 13);
+  }
+
+  // Section label
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = mutedColor;
+  ctx.textAlign = 'center';
+  ctx.fillText('CROSS-SECTION', cx, H - 6);
+
+  // Divider
+  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(splitX, margin); ctx.lineTo(splitX, H - margin); ctx.stroke();
+
+  // ---- RIGHT: Side profile (unrolled thread) ----
+  const periods = 4;
+  const sx = splitX + margin;
+  const availW = W - splitX - margin * 2;
+  const pxPerPitch = availW / periods;
+  const profileTop = margin + 18;
+  const profileBot = H - margin - 18;
+  const profileH = profileBot - profileTop;
+  const threadPx = (depth / P) * pxPerPitch * 0.85; // thread depth scaled to profile height
+
+  // Material is BELOW the profile for a bolt, ABOVE it for a nut; teeth point away from the material.
+  // True ISO shape: 60deg flanks, flat tips. Bolt tooth: base 5P/6, tip P/8. Nut tooth: base 7P/8, tip P/4.
+  const hPx = Math.min(threadPx, profileH * 0.45);
+  const xEnd = sx + periods * pxPerPitch;
+  const baseF = isBolt ? 0.8333 : 0.875;
+  const tipF  = isBolt ? 0.125  : 0.25;
+  let crestY, rootY;                       // crestY = upper level, rootY = lower level (used by depth annotation)
+  if (isBolt) { rootY = profileBot - profileH * 0.22; crestY = rootY - hPx; }
+  else        { crestY = profileTop + profileH * 0.22; rootY = crestY + hPx; }
+  const baseY = isBolt ? rootY : crestY;   // level where teeth are widest (attached to material)
+  const tipY  = isBolt ? crestY : rootY;   // level of the tooth flats
+  const edgeY = isBolt ? profileBot : profileTop;
+
+  const outline = [{ x: sx, y: baseY }];
+  for (let i = 0; i < periods; i++) {
+    const cx = sx + (i + 0.5) * pxPerPitch;
+    outline.push({ x: cx - baseF * pxPerPitch / 2, y: baseY });
+    outline.push({ x: cx - tipF  * pxPerPitch / 2, y: tipY  });
+    outline.push({ x: cx + tipF  * pxPerPitch / 2, y: tipY  });
+    outline.push({ x: cx + baseF * pxPerPitch / 2, y: baseY });
+  }
+  outline.push({ x: xEnd, y: baseY });
+
+  // Solid material
+  ctx.beginPath();
+  outline.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.lineTo(xEnd, edgeY);
+  ctx.lineTo(sx, edgeY);
+  ctx.closePath();
+  ctx.fillStyle = colorFill;
+  ctx.fill();
+
+  // Thread profile outline
+  ctx.beginPath();
+  outline.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+  ctx.strokeStyle = colorLine;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Pitch annotation arrow (top)
+  const arrowY = isBolt ? profileTop + 8 : profileBot - 8;
+  const p0x = sx, p1x = sx + pxPerPitch;
+  ctx.strokeStyle = dimColor;
+  ctx.fillStyle  = dimColor;
+  ctx.lineWidth  = 1;
+  ctx.beginPath(); ctx.moveTo(p0x, arrowY); ctx.lineTo(p1x, arrowY); ctx.stroke();
+  // arrow heads
+  [[p0x,1],[p1x,-1]].forEach(([ax,dir]) => {
+    ctx.beginPath(); ctx.moveTo(ax,arrowY); ctx.lineTo(ax+dir*6,arrowY-3); ctx.lineTo(ax+dir*6,arrowY+3); ctx.closePath(); ctx.fill();
+  });
+  ctx.font = 'bold 10px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = dimColor;
+  ctx.fillText(`P = ${P} mm`, (p0x+p1x)/2, arrowY - 4);
+
+  // Depth annotation (right side)
+  const depthX = sx + periods * pxPerPitch + 10;
+  ctx.strokeStyle = dimColor;
+  ctx.fillStyle  = dimColor;
+  ctx.lineWidth  = 1;
+  ctx.setLineDash([2,3]);
+  ctx.beginPath(); ctx.moveTo(sx + periods*pxPerPitch - 4, crestY); ctx.lineTo(depthX + 18, crestY); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(sx + periods*pxPerPitch - 4, rootY);  ctx.lineTo(depthX + 18, rootY);  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(depthX+14, crestY); ctx.lineTo(depthX+14, rootY); ctx.stroke();
+  [[crestY,1],[rootY,-1]].forEach(([ay,dir]) => {
+    ctx.beginPath(); ctx.moveTo(depthX+14,ay); ctx.lineTo(depthX+11,ay+dir*5); ctx.lineTo(depthX+17,ay+dir*5); ctx.closePath(); ctx.fill();
+  });
+  ctx.save();
+  ctx.translate(depthX + 26, (crestY+rootY)/2);
+  ctx.rotate(Math.PI/2);
+  ctx.font = '9px JetBrains Mono, monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = dimColor;
+  ctx.fillText(`${depth} mm`, 0, 0);
+  ctx.restore();
+
+  // Section label
+  ctx.font = '10px JetBrains Mono, monospace';
+  ctx.fillStyle = mutedColor;
+  ctx.textAlign = 'center';
+  ctx.fillText(`SIDE PROFILE  (${periods} pitches)`, sx + availW/2, H - 6);
+}
+
+function updateDiameterLabel() {
+  const D = parseFloat(document.getElementById('sel-diameter').value);
+  const lbl = document.getElementById('diameter-label');
+  if (lbl) lbl.textContent = isNaN(D) ? '—' : 'M' + D;
+}
+
+// Init
+updateDiameterLabel();
+renderPresets();
+populatePitches();
+</script>
+</body>
+</html>
